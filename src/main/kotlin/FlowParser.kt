@@ -11,7 +11,6 @@ object AstNone: AstOption<Nothing>
 */
 
 data class AstList<out T : Ast>(val nodes: List<T>): Ast
-data class AstPair<out A : Ast, out B : Ast>(val a: A, val b: B): Ast
 
 class ParserState private constructor(private val tokens: List<Token>, private val currentToken: Int, val isSuccessful: Boolean) {
     constructor(tokens: List<Token>) : this(tokens, 0, true)
@@ -65,7 +64,7 @@ abstract class FlowParser<out T : Ast>(val name: String) {
                             if (!state.isEOF()) {
                                 //any(...) cases will try all branches at once and even on valid programs it will hit this case a lot
                                 //yield() to try to not spend too much time following recovery cases unless necessary
-                                yield()
+                                //yield()
 
                                 var state = state.fail()
                                 if(shouldSynthesize && rating + 1.5f < 10f) emit(ParserResult(r(state.token.line, state.token.column), state, rating + 1.5f))
@@ -164,11 +163,7 @@ abstract class FlowParser<out T : Ast>(val name: String) {
                 override suspend fun expect(state: ParserState, rating: Float): Flow<ParserResult<T>> {
                     val a = aa.expect(state, rating)
                     val b = bb.expect(state, rating)
-
-                    val z = listOf(a, b).asFlow().flattenMerge()
-                    val zp = z.filter { it.rating == rating }
-                    return if(zp.firstOrNull() == null) z
-                    else zp
+                    return listOf(a, b).asFlow().flattenMerge().toList().sortedBy{ it.rating + it.state.remaining }.asFlow()
                 }
             }
 
@@ -182,10 +177,7 @@ abstract class FlowParser<out T : Ast>(val name: String) {
                     val a = aa.expect(state, rating)
                     val b = bb.expect(state, rating)
                     val c = cc.expect(state, rating)
-                    val z = listOf(a, b, c).asFlow().flattenMerge()
-                    val zp = z.filter { it.rating == rating }
-                    return if(zp.firstOrNull() == null) z
-                    else zp
+                    return listOf(a, b, c).asFlow().flattenMerge().toList().sortedBy{ it.rating + it.state.remaining }.asFlow()
                 }
             }
 
@@ -201,11 +193,7 @@ abstract class FlowParser<out T : Ast>(val name: String) {
                     val b = bb.expect(state, rating)
                     val c = cc.expect(state, rating)
                     val d = dd.expect(state, rating)
-
-                    val z = listOf(a, b, c, d).asFlow().flattenMerge()
-                    val zp = z.filter { it.rating == rating }
-                    return if(zp.firstOrNull() == null) z
-                    else zp
+                    return listOf(a, b, c, d).asFlow().flattenMerge().toList().sortedBy{ it.rating + it.state.remaining }.asFlow()
                 }
             }
 
@@ -223,22 +211,41 @@ abstract class FlowParser<out T : Ast>(val name: String) {
                     val c = cc.expect(state, rating)
                     val d = dd.expect(state, rating)
                     val e = ee.expect(state, rating)
-
-                    val z = listOf(a, b, c, d, e).asFlow().flattenMerge()
-                    val zp = z.filter { it.rating == rating }
-                    return if(zp.firstOrNull() == null) z
-                    else zp
+                    return listOf(a, b, c, d, e).asFlow().flattenMerge().toList().sortedBy{ it.rating + it.state.remaining }.asFlow()
                 }
             }
     }
 
-    fun <S : Ast>star(next: () -> FlowParser<S>): FlowParser<AstPair<AstList<T>, S>> {
+    fun star(): FlowParser<AstList<T>> {
         val t = this
-        object : FlowParser<AstPair<AstList<T>, S>>("${t.name}.star") {
-            val nn: FlowParser<S> by lazy(next)
+        return object : FlowParser<AstList<T>>("${t.name}.star") {
+            override suspend fun expect(state: ParserState, rating: Float): Flow<ParserResult<AstList<T>>> = flow {
+                val l = mutableListOf<T>()
+                var s = state
+                var r = rating
 
-            override suspend fun expect(state: ParserState, rating: Float): Flow<ParserResult<AstPair<AstList<T>, S>>> {
+                while(true) {
+                    val f = t.expect(s, r)
+                    val f1 = f.firstOrNull()
+                    if(f1 == null) {
+                        println("ahhhh")
+                        break
+                    } else if(f1.rating == r) {
+                        l.add(f1.ast)
+                        s = f1.state
+                    } else {
+                        val f2 = f.toList().sortedBy { it.rating + it.state.remaining }.first()
+                        if(f2.rating < 10) {
+                            l.add(f2.ast)
+                            s = f2.state
+                            r = f2.rating
+                        } else {
+                            break
+                        }
+                    }
+                }
 
+                emit(ParserResult(AstList(l.toList()), s, r))
             }
         }
     }

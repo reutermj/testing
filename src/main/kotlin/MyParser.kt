@@ -2,7 +2,7 @@ data class LetKeywordNode(val letKeyword: LetToken, val discardedTokens: List<To
     constructor(letKeyword: LetToken): this(letKeyword, listOf())
     constructor(line: Int, column: Int): this(LetToken(line, column), listOf())
     companion object {
-        val parser = FlowParser.expect("LetKeywordNode", false, ::LetKeywordNode, ::LetKeywordNode, ::LetKeywordNode)
+        val parser = FlowParser.expect("LetKeywordNode", true, ::LetKeywordNode, ::LetKeywordNode, ::LetKeywordNode)
     }
 }
 
@@ -10,7 +10,7 @@ data class ReturnKeywordNode(val returnKeyword: ReturnToken, val discardedTokens
     constructor(returnKeyword: ReturnToken): this(returnKeyword, listOf())
     constructor(line: Int, column: Int): this(ReturnToken(line, column), listOf())
     companion object {
-        val parser = FlowParser.expect("ReturnKeywordNode", false, ::ReturnKeywordNode, ::ReturnKeywordNode, ::ReturnKeywordNode)
+        val parser = FlowParser.expect("ReturnKeywordNode", true, ::ReturnKeywordNode, ::ReturnKeywordNode, ::ReturnKeywordNode)
     }
 }
 
@@ -18,7 +18,7 @@ data class PrintKeywordNode(val printKeyword: PrintToken, val discardedTokens: L
     constructor(printKeyword: PrintToken): this(printKeyword, listOf())
     constructor(line: Int, column: Int): this(PrintToken(line, column), listOf())
     companion object {
-        val parser = FlowParser.expect("PrintKeywordNode", false, ::PrintKeywordNode, ::PrintKeywordNode, ::PrintKeywordNode)
+        val parser = FlowParser.expect("PrintKeywordNode", true, ::PrintKeywordNode, ::PrintKeywordNode, ::PrintKeywordNode)
     }
 }
 
@@ -80,7 +80,7 @@ data class FunKeywordNode(val funKeyword: FunToken, val discardedTokens: List<To
 
 sealed interface FunctionBody: Ast {
     companion object {
-        val parser = FlowParser.any("FunctionBody", /*{ FunctionNode.parser }, */{ LetNode.parser }, { ReturnNode.parser }, { PrintNode.parser })
+        val parser = FlowParser.any("FunctionBody", /*{ FunctionNode.parser }, */{ LetNode.parser }, { ReturnNode.parser }/*, { PrintNode.parser }*/)
     }
 }
 

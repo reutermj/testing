@@ -42,8 +42,11 @@ fun tokenize(lines: List<String>): List<Token> {
 
     for(ln in 0 until lines.size) {
         val l = lines[ln]
-        for(cn in 0 until l.length) {
-            val c = l[cn]
+        for(cn in 0 .. l.length) {
+            val c =
+                if(cn == l.length) '\n'
+                else l[cn]
+
             val newState =
                 when (c) {
                     in acceptableChars -> TokenizerState.Symbol

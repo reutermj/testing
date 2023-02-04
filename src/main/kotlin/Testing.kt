@@ -43,7 +43,7 @@ fun main() = runBlocking {
     val lines = File("./program.upl").bufferedReader().readLines()
     val tokens = tokenize(lines)
     val state = ParserState(tokens)
-    val let = FunctionNode.parser.expect(state, 0f)
+    val let = FunctionBody.parser.star().expect(state, 0f)
     let.toList().map{ ParserResult(it.ast, it.state, it.rating + it.state.remaining) }.sortedBy { it.rating }.forEach {
         println(it)
     }
